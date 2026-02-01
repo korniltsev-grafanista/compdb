@@ -10,8 +10,4 @@ fs2 = "0.4"
 
 [[bin]]
 name = "compdbcc"
-path = "cc.rs"
-
-[[bin]]
-name = "compdbccgen"
-path = "gen_compdb.rs" 
+path = "src/main.rs"
