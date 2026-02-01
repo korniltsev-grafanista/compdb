@@ -1,0 +1,1 @@
+[{"directory": "/home/korniltsev/mygithub/dbudy/cc_hook_compdb", "arguments": ["/usr/bin/gcc", "qwe.c", "-DHUI", "-o", "out"], "file": "/home/korniltsev/mygithub/dbudy/cc_hook_compdb/qwe.c"}]
