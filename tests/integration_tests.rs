@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -44,8 +44,7 @@ fn test_cli_default_path() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .assert()
         .success()
@@ -63,8 +62,7 @@ fn test_cli_custom_path() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .arg(db_path.to_str().unwrap())
         .assert()
         .success()
@@ -82,8 +80,7 @@ fn test_cli_exclude_pattern() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("^tests/")
@@ -106,8 +103,7 @@ fn test_cli_multiple_exclude_patterns() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("^tests/")
@@ -138,8 +134,7 @@ fn test_cli_include_pattern() {
     });
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("^tests/")
@@ -166,8 +161,7 @@ fn test_cli_backup_preservation() {
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
     // First run
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .assert()
         .success();
@@ -177,8 +171,7 @@ fn test_cli_backup_preservation() {
     let first_backup_content = fs::read_to_string(&first_backup).unwrap();
 
     // Second run - should create .bak.1
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .assert()
         .success();
@@ -194,8 +187,7 @@ fn test_cli_backup_preservation() {
 
 #[test]
 fn test_cli_missing_file() {
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .arg("nonexistent.json")
         .assert()
         .failure();
@@ -208,8 +200,7 @@ fn test_cli_invalid_json() {
 
     fs::write(&db_path, "invalid json {").unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .assert()
         .failure();
@@ -223,8 +214,7 @@ fn test_cli_invalid_regex() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("[invalid")
@@ -240,8 +230,7 @@ fn test_cli_empty_database() {
     let commands: Vec<CompileCommand> = vec![];
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .assert()
         .success()
@@ -256,8 +245,7 @@ fn test_cli_all_filtered_out() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg(".*")  // Exclude everything
@@ -279,8 +267,7 @@ fn test_cli_long_option_names() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("--exclude")
         .arg("^tests/")
@@ -325,8 +312,7 @@ fn test_cli_complex_filtering_scenario() {
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
     // Exclude all drivers and arm, but include USB driver
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("drivers/")
@@ -354,8 +340,7 @@ fn test_cli_stats_output_format() {
     let commands = sample_compile_db();
     fs::write(&db_path, serde_json::to_string_pretty(&commands).unwrap()).unwrap();
 
-    Command::cargo_bin("compdbfilter")
-        .unwrap()
+    cargo_bin_cmd!("compdbfilter")
         .current_dir(temp_dir.path())
         .arg("-e")
         .arg("^vendor/")
