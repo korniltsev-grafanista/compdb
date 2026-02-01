@@ -11,3 +11,7 @@ fs2 = "0.4"
 [[bin]]
 name = "compdb-cc"
 path = "src/main.rs"
+
+[[bin]]
+name = "compdb-cxx"
+path = "src/cxx.rs"

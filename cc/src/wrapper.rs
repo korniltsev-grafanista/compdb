@@ -41,11 +41,11 @@ pub fn run(log_file: &str) {
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&log_file)
+        .open(log_file)
         .expect("Failed to open log file");
 
     // Write log entry
-    writeln!(file, "{}", log_entry.to_string())
+    writeln!(file, "{}", log_entry)
         .expect("Failed to write to log file");
 
     // Release the lock
