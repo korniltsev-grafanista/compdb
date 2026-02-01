@@ -23,6 +23,7 @@ pub fn run(log_file: &str, compiler: &str) {
     // Log the command execution
     let log_entry = json!({
         "wd": wd_str,
+        "compiler": compiler,
         "args": args,
     });
 

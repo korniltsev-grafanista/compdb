@@ -568,7 +568,7 @@ mod output_format_tests {
     }
 
     #[test]
-    fn arguments_starts_with_gcc() {
+    fn arguments_starts_with_default_compiler_when_not_specified() {
         let temp_dir = TempDir::new().unwrap();
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
@@ -585,6 +585,69 @@ mod output_format_tests {
         let args = db[0]["arguments"].as_array().unwrap();
 
         assert_eq!(args[0], "/usr/bin/gcc");
+    }
+
+    #[test]
+    fn arguments_uses_compiler_from_log_entry() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}"#;
+        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .arg("--generate")
+            .assert()
+            .success();
+
+        let content = fs::read_to_string(temp_dir.path().join("compile_commands.json")).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+        let args = db[0]["arguments"].as_array().unwrap();
+
+        assert_eq!(args[0], "clang");
+    }
+
+    #[test]
+    fn arguments_uses_full_path_compiler_from_log_entry() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let log_content = r#"{"wd":"/project","compiler":"/usr/local/bin/gcc-12","args":["-c","main.c"]}"#;
+        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .arg("--generate")
+            .assert()
+            .success();
+
+        let content = fs::read_to_string(temp_dir.path().join("compile_commands.json")).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+        let args = db[0]["arguments"].as_array().unwrap();
+
+        assert_eq!(args[0], "/usr/local/bin/gcc-12");
+    }
+
+    #[test]
+    fn handles_mixed_compiler_entries() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}
+{"wd":"/project","compiler":"clang++","args":["-c","app.cpp"]}
+{"wd":"/project","args":["-c","util.c"]}"#;
+        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .arg("--generate")
+            .assert()
+            .success();
+
+        let content = fs::read_to_string(temp_dir.path().join("compile_commands.json")).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+
+        assert_eq!(db[0]["arguments"].as_array().unwrap()[0], "clang");
+        assert_eq!(db[1]["arguments"].as_array().unwrap()[0], "clang++");
+        assert_eq!(db[2]["arguments"].as_array().unwrap()[0], "/usr/bin/gcc");
     }
 
     #[test]

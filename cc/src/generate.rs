@@ -3,19 +3,23 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use serde_json::{json, Value};
 
+/// Default compiler used when log entry doesn't specify one (for backwards compatibility).
+const DEFAULT_COMPILER: &str = "/usr/bin/gcc";
+
 /// Parse a single log entry and return a compilation database entry if valid.
 /// Returns None if the entry has no source files or invalid format.
 pub fn parse_log_entry(line: &str, wd_override: Option<&str>) -> Option<Value> {
     let it: Value = serde_json::from_str(line).ok()?;
 
     let wd = wd_override.unwrap_or_else(|| it["wd"].as_str().unwrap_or(""));
+    let compiler = it["compiler"].as_str().unwrap_or(DEFAULT_COMPILER);
     let args_value = &it["args"];
 
     if !args_value.is_array() {
         return None;
     }
 
-    let mut args = vec!["/usr/bin/gcc".to_string()];
+    let mut args = vec![compiler.to_string()];
     for arg in args_value.as_array().unwrap() {
         if let Some(arg_str) = arg.as_str() {
             args.push(arg_str.to_string());
@@ -271,7 +275,7 @@ mod tests {
         }
 
         #[test]
-        fn prepends_gcc_to_arguments() {
+        fn uses_default_compiler_when_not_specified() {
             let line = r#"{"wd":"/project","args":["-c","main.c","-O2"]}"#;
             let result = parse_log_entry(line, None);
             assert!(result.is_some());
@@ -281,6 +285,38 @@ mod tests {
             assert_eq!(args[1], "-c");
             assert_eq!(args[2], "main.c");
             assert_eq!(args[3], "-O2");
+        }
+
+        #[test]
+        fn uses_compiler_from_log_entry() {
+            let line = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}"#;
+            let result = parse_log_entry(line, None);
+            assert!(result.is_some());
+            let entry = result.unwrap();
+            let args = entry["arguments"].as_array().unwrap();
+            assert_eq!(args[0], "clang");
+            assert_eq!(args[1], "-c");
+            assert_eq!(args[2], "main.c");
+        }
+
+        #[test]
+        fn uses_full_path_compiler_from_log_entry() {
+            let line = r#"{"wd":"/project","compiler":"/usr/local/bin/gcc-12","args":["-c","main.c"]}"#;
+            let result = parse_log_entry(line, None);
+            assert!(result.is_some());
+            let entry = result.unwrap();
+            let args = entry["arguments"].as_array().unwrap();
+            assert_eq!(args[0], "/usr/local/bin/gcc-12");
+        }
+
+        #[test]
+        fn uses_clangpp_compiler_from_log_entry() {
+            let line = r#"{"wd":"/project","compiler":"clang++","args":["-c","main.cpp"]}"#;
+            let result = parse_log_entry(line, None);
+            assert!(result.is_some());
+            let entry = result.unwrap();
+            let args = entry["arguments"].as_array().unwrap();
+            assert_eq!(args[0], "clang++");
         }
 
         #[test]
