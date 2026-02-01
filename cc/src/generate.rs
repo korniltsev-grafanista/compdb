@@ -72,6 +72,9 @@ pub fn generate_db(log_file: &str, dst: &str) -> Result<Vec<Value>, Box<dyn std:
 }
 
 pub fn run(log_file: &str) -> Result<(), Box<dyn std::error::Error>> {
+    if !Path::new(log_file).is_absolute() {
+        return Err(format!("log file path must be absolute: {}", log_file).into());
+    }
     generate_db(log_file, "compile_commands.json")?;
     Ok(())
 }
@@ -509,16 +512,25 @@ not valid json
             // Change to temp dir
             std::env::set_current_dir(temp_dir.path()).unwrap();
 
-            // Create log file
+            // Create log file with absolute path
+            let log_path = temp_dir.path().join("cc_hook.txt");
             let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-            fs::write("cc_hook.txt", log_content).unwrap();
+            fs::write(&log_path, log_content).unwrap();
 
-            let result = run("cc_hook.txt");
+            let result = run(log_path.to_str().unwrap());
             assert!(result.is_ok());
             assert!(temp_dir.path().join("compile_commands.json").exists());
 
             // Restore original directory
             std::env::set_current_dir(original_dir).unwrap();
+        }
+
+        #[test]
+        fn run_rejects_relative_path() {
+            let result = run("cc_hook.txt");
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(err.contains("absolute"));
         }
 
         #[test]

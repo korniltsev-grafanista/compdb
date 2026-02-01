@@ -8,9 +8,13 @@ use serde_json::json;
 use fs2::FileExt;
 
 pub fn run(log_file: &str, compiler: &str) {
+    let log_path = Path::new(&log_file);
+    if !log_path.is_absolute() {
+        eprintln!("Error: log file path must be absolute: {}", log_file);
+        std::process::exit(1);
+    }
 
     // Create lock file path next to the log file
-    let log_path = Path::new(&log_file);
     let lock_file_path = log_path.with_extension("lock");
 
     // Get current working directory

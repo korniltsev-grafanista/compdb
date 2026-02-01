@@ -2,6 +2,16 @@ pub mod wrapper;
 pub mod generate;
 
 use std::env;
+use std::path::Path;
+
+/// Error type for log file path validation.
+#[derive(Debug, PartialEq)]
+pub enum LogFileError {
+    /// COMPDB_LOG environment variable is not set.
+    NotSet,
+    /// COMPDB_LOG path is not absolute.
+    NotAbsolute,
+}
 
 pub fn run_cc() {
     let compiler = env::var("COMPDB_CC").unwrap_or_else(|_| "clang".to_string());
@@ -26,9 +36,13 @@ pub fn get_cxx_compiler() -> String {
 }
 
 /// Determine the log file path.
-/// Requires COMPDB_LOG environment variable to be set.
-pub fn get_log_file() -> Result<String, env::VarError> {
-    env::var("COMPDB_LOG")
+/// Requires COMPDB_LOG environment variable to be set and to be an absolute path.
+pub fn get_log_file() -> Result<String, LogFileError> {
+    let path = env::var("COMPDB_LOG").map_err(|_| LogFileError::NotSet)?;
+    if !Path::new(&path).is_absolute() {
+        return Err(LogFileError::NotAbsolute);
+    }
+    Ok(path)
 }
 
 /// Check if generate mode is requested via --generate flag in args.
@@ -52,8 +66,12 @@ fn run_with_compiler(compiler: &str) {
     let args: Vec<String> = env::args().collect();
     let log_file = match get_log_file() {
         Ok(path) => path,
-        Err(_) => {
+        Err(LogFileError::NotSet) => {
             eprintln!("Error: COMPDB_LOG environment variable is required");
+            std::process::exit(1);
+        }
+        Err(LogFileError::NotAbsolute) => {
+            eprintln!("Error: COMPDB_LOG must be an absolute path");
             std::process::exit(1);
         }
     };
@@ -150,19 +168,28 @@ mod tests {
         static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
         #[test]
-        fn returns_error_when_env_not_set() {
+        fn returns_not_set_error_when_env_not_set() {
             let _guard = ENV_MUTEX.lock().unwrap();
             env::remove_var("COMPDB_LOG");
-            assert!(get_log_file().is_err());
+            assert_eq!(get_log_file(), Err(LogFileError::NotSet));
         }
 
         #[test]
-        fn returns_custom_path_from_env() {
+        fn returns_not_absolute_error_for_relative_path() {
             let _guard = ENV_MUTEX.lock().unwrap();
             env::set_var("COMPDB_LOG", "custom_log.txt");
             let result = get_log_file();
             env::remove_var("COMPDB_LOG");
-            assert_eq!(result.unwrap(), "custom_log.txt");
+            assert_eq!(result, Err(LogFileError::NotAbsolute));
+        }
+
+        #[test]
+        fn returns_not_absolute_error_for_relative_path_with_dirs() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::set_var("COMPDB_LOG", "subdir/log.txt");
+            let result = get_log_file();
+            env::remove_var("COMPDB_LOG");
+            assert_eq!(result, Err(LogFileError::NotAbsolute));
         }
 
         #[test]
@@ -175,12 +202,21 @@ mod tests {
         }
 
         #[test]
-        fn returns_relative_path_from_env() {
+        fn returns_not_absolute_error_for_dotdot_path() {
             let _guard = ENV_MUTEX.lock().unwrap();
             env::set_var("COMPDB_LOG", "../logs/cc_hook.txt");
             let result = get_log_file();
             env::remove_var("COMPDB_LOG");
-            assert_eq!(result.unwrap(), "../logs/cc_hook.txt");
+            assert_eq!(result, Err(LogFileError::NotAbsolute));
+        }
+
+        #[test]
+        fn returns_ok_for_root_path() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::set_var("COMPDB_LOG", "/cc_hook.txt");
+            let result = get_log_file();
+            env::remove_var("COMPDB_LOG");
+            assert_eq!(result.unwrap(), "/cc_hook.txt");
         }
     }
 

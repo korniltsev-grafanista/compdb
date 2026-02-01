@@ -12,15 +12,16 @@ mod compdb_cc_tests {
     #[test]
     fn generate_flag_creates_compile_commands_json() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         // Create log file with valid entries
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}
 {"wd":"/project","args":["-c","util.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -40,13 +41,14 @@ mod compdb_cc_tests {
     #[test]
     fn generate_env_var_creates_compile_commands_json() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","test.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .env("COMPDB_GENERATE", "1")
             .assert()
             .success();
@@ -57,13 +59,14 @@ mod compdb_cc_tests {
     #[test]
     fn generate_with_empty_log_creates_empty_db() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         // Create empty log file
-        fs::write(temp_dir.path().join("cc_hook.txt"), "").unwrap();
+        fs::write(&log_path, "").unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -87,12 +90,28 @@ mod compdb_cc_tests {
     }
 
     #[test]
-    fn generate_with_missing_log_file_fails() {
+    fn generate_fails_when_compdb_log_not_absolute() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
+        fs::write(&log_path, "").unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "nonexistent.txt")
+            .env("COMPDB_LOG", "cc_hook.txt")
+            .arg("--generate")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("absolute"));
+    }
+
+    #[test]
+    fn generate_with_missing_log_file_fails() {
+        let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("nonexistent.txt");
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .failure()
@@ -102,15 +121,16 @@ mod compdb_cc_tests {
     #[test]
     fn generate_with_invalid_json_warns_but_continues() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}
 invalid json line
 {"wd":"/project","args":["-c","util.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success()
@@ -124,14 +144,15 @@ invalid json line
     #[test]
     fn generate_handles_cpp_files() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","app.cpp"]}
 {"wd":"/project","args":["-c","lib.cc"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -146,13 +167,14 @@ invalid json line
     #[test]
     fn generate_preserves_directory() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/build/subdir","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -165,13 +187,14 @@ invalid json line
     #[test]
     fn generate_includes_all_arguments() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","-Wall","-O2","-I/include","-DDEBUG","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -188,15 +211,16 @@ invalid json line
     #[test]
     fn generate_skips_entries_without_source() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}
 {"wd":"/project","args":["-o","output.o"]}
 {"wd":"/project","args":["-c","util.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success()
@@ -210,16 +234,17 @@ invalid json line
     #[test]
     fn generate_handles_many_entries() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content: String = (0..100)
             .map(|i| format!(r#"{{"wd":"/project","args":["-c","file{}.c"]}}"#, i))
             .collect::<Vec<_>>()
             .join("\n");
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -232,13 +257,14 @@ invalid json line
     #[test]
     fn generate_output_is_valid_json() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -257,14 +283,15 @@ mod compdb_cxx_tests {
     #[test]
     fn generate_flag_creates_compile_commands_json() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.cpp"]}
 {"wd":"/project","args":["-c","util.cc"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -279,13 +306,14 @@ mod compdb_cxx_tests {
     #[test]
     fn generate_env_var_creates_compile_commands_json() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","test.cpp"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .env("COMPDB_GENERATE", "true")
             .assert()
             .success();
@@ -305,6 +333,21 @@ mod compdb_cxx_tests {
             .failure()
             .stderr(predicate::str::contains("COMPDB_LOG"));
     }
+
+    #[test]
+    fn generate_fails_when_compdb_log_not_absolute() {
+        let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
+        fs::write(&log_path, "").unwrap();
+
+        cargo_bin_cmd!("compdb-cxx")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
+            .arg("--generate")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("absolute"));
+    }
 }
 
 // ==================== Cross-binary consistency tests ====================
@@ -315,14 +358,15 @@ mod consistency_tests {
     #[test]
     fn cc_and_cxx_generate_identical_output_for_same_input() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.cpp"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         // Generate with compdb-cc
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -336,7 +380,7 @@ mod consistency_tests {
         // Generate with compdb-cxx
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -379,13 +423,14 @@ mod edge_case_tests {
     #[test]
     fn handles_unicode_in_paths() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project/日本語","args":["-c","файл.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -399,13 +444,14 @@ mod edge_case_tests {
     #[test]
     fn handles_spaces_in_paths() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project/with spaces","args":["-c","my file.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -420,14 +466,15 @@ mod edge_case_tests {
     #[test]
     fn handles_special_characters_in_args() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content =
             r#"{"wd":"/project","args":["-c","-DVERSION=\"1.0\"","-DNAME='test'","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -441,13 +488,14 @@ mod edge_case_tests {
     #[test]
     fn handles_deeply_nested_paths() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/a/b/c/d/e/f/g/h/i/j","args":["-c","src/lib/core/util/helper.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -464,13 +512,14 @@ mod edge_case_tests {
     #[test]
     fn handles_empty_working_directory() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -483,13 +532,14 @@ mod edge_case_tests {
     #[test]
     fn handles_log_with_trailing_newline() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = "{\"wd\":\"/project\",\"args\":[\"-c\",\"main.c\"]}\n";
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -502,13 +552,14 @@ mod edge_case_tests {
     #[test]
     fn handles_log_with_multiple_trailing_newlines() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = "{\"wd\":\"/project\",\"args\":[\"-c\",\"main.c\"]}\n\n\n";
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -521,16 +572,17 @@ mod edge_case_tests {
     #[test]
     fn generate_env_var_empty_string_does_not_trigger_generate() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         // Create a log file
-        fs::write(temp_dir.path().join("cc_hook.txt"), "").unwrap();
+        fs::write(&log_path, "").unwrap();
 
         // With empty COMPDB_GENERATE, should try to run compiler (not generate mode)
         // This tests that empty string doesn't trigger generate mode
         // We verify by checking that compile_commands.json is NOT created
         let _ = cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .env("COMPDB_GENERATE", "")
             .arg("--version") // Pass to actual compiler
             .assert();
@@ -548,13 +600,14 @@ mod output_format_tests {
     #[test]
     fn output_is_array() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -567,13 +620,14 @@ mod output_format_tests {
     #[test]
     fn entries_have_required_fields() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -591,13 +645,14 @@ mod output_format_tests {
     #[test]
     fn arguments_field_is_array() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -611,13 +666,14 @@ mod output_format_tests {
     #[test]
     fn arguments_starts_with_default_compiler_when_not_specified() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -632,13 +688,14 @@ mod output_format_tests {
     #[test]
     fn arguments_uses_compiler_from_log_entry() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -653,13 +710,14 @@ mod output_format_tests {
     #[test]
     fn arguments_uses_full_path_compiler_from_log_entry() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","compiler":"/usr/local/bin/gcc-12","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -674,15 +732,16 @@ mod output_format_tests {
     #[test]
     fn handles_mixed_compiler_entries() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}
 {"wd":"/project","compiler":"clang++","args":["-c","app.cpp"]}
 {"wd":"/project","args":["-c","util.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -698,13 +757,14 @@ mod output_format_tests {
     #[test]
     fn file_is_absolute_path() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cc_hook.txt");
 
         let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cc_hook.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -725,14 +785,15 @@ mod compdb_log_tests {
     #[test]
     fn generate_uses_custom_log_path() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("custom_log.txt");
 
         // Create log file with custom name
         let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}"#;
-        fs::write(temp_dir.path().join("custom_log.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "custom_log.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
@@ -775,10 +836,11 @@ mod compdb_log_tests {
     #[test]
     fn generate_fails_with_missing_custom_log() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("nonexistent_log.txt");
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "nonexistent_log.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .failure()
@@ -788,13 +850,14 @@ mod compdb_log_tests {
     #[test]
     fn compdb_cxx_uses_custom_log_path() {
         let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("cxx_log.txt");
 
         let log_content = r#"{"wd":"/project","compiler":"clang++","args":["-c","app.cpp"]}"#;
-        fs::write(temp_dir.path().join("cxx_log.txt"), log_content).unwrap();
+        fs::write(&log_path, log_content).unwrap();
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
-            .env("COMPDB_LOG", "cxx_log.txt")
+            .env("COMPDB_LOG", log_path.to_str().unwrap())
             .arg("--generate")
             .assert()
             .success();
