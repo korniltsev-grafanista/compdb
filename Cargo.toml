@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "compdbfilter",
+    "filter",
     "cc",
 ]
 resolver = "3"
