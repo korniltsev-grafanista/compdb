@@ -7,12 +7,10 @@ use std::process::Command;
 use serde_json::json;
 use fs2::FileExt;
 
-pub fn run() {
-    // Get log file path from environment variable or use default
-    let log_file = env::var("CC_HOOK_COMPDB_LOG_FILE").unwrap_or_else(|_| "cc_hook.txt".to_string());
+pub fn run(log_file: &str) {
 
     // Get compiler path from environment variable or use default
-    let gcc_path = env::var("CC_HOOK_COMPDB_CC").unwrap_or_else(|_| "/usr/bin/gcc".to_string());
+    let gcc_path = env::var("COMPDB_CC").unwrap_or_else(|_| "/usr/bin/gcc".to_string());
 
     // Create lock file path next to the log file
     let log_path = Path::new(&log_file);
