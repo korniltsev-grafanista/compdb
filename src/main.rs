@@ -2,7 +2,7 @@ use clap::Parser;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CompileCommand {
@@ -30,7 +30,7 @@ struct Cli {
 
 /// Find the next available backup path that doesn't exist.
 /// Returns paths like: file.bak, file.bak.1, file.bak.2, etc.
-pub fn find_backup_path(original: &PathBuf) -> PathBuf {
+pub fn find_backup_path(original: &Path) -> PathBuf {
     let base = format!("{}.bak", original.display());
     let base_path = PathBuf::from(&base);
 
