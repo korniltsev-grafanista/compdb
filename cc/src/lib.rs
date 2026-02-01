@@ -5,7 +5,17 @@ use std::env;
 
 const LOG_FILE: &str = "cc_hook.txt";
 
-pub fn run() {
+pub fn run_cc() {
+    let compiler = env::var("COMPDB_CC").unwrap_or_else(|_| "clang".to_string());
+    run_with_compiler(&compiler);
+}
+
+pub fn run_cxx() {
+    let compiler = env::var("COMPDB_CXX").unwrap_or_else(|_| "clang++".to_string());
+    run_with_compiler(&compiler);
+}
+
+fn run_with_compiler(compiler: &str) {
     let args: Vec<String> = env::args().collect();
 
     // Check for --generate flag
@@ -22,6 +32,6 @@ pub fn run() {
             std::process::exit(1);
         }
     } else {
-        wrapper::run(LOG_FILE);
+        wrapper::run(LOG_FILE, compiler);
     }
 }

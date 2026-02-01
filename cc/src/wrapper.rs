@@ -7,10 +7,7 @@ use std::process::Command;
 use serde_json::json;
 use fs2::FileExt;
 
-pub fn run(log_file: &str) {
-
-    // Get compiler path from environment variable or use default
-    let gcc_path = env::var("COMPDB_CC").unwrap_or_else(|_| "/usr/bin/gcc".to_string());
+pub fn run(log_file: &str, compiler: &str) {
 
     // Create lock file path next to the log file
     let log_path = Path::new(&log_file);
@@ -52,14 +49,14 @@ pub fn run(log_file: &str) {
     lock_file.unlock()
         .expect("Failed to release lock");
 
-    // Execute gcc with the provided arguments
-    let mut cmd = Command::new(&gcc_path);
+    // Execute the compiler with the provided arguments
+    let mut cmd = Command::new(&compiler);
     cmd.args(&args);
 
-    // Replace current process with gcc
+    // Replace current process with the compiler
     let error = cmd.exec();
 
     // If exec returns, it means there was an error
-    eprintln!("Failed to execute {}: {}", gcc_path, error);
+    eprintln!("Failed to execute {}: {}", compiler, error);
     std::process::exit(1);
 }

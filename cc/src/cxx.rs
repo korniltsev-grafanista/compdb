@@ -1,3 +1,3 @@
 fn main() {
-    cc::run();
+    cc::run_cxx();
 }
