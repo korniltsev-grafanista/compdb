@@ -20,6 +20,7 @@ mod compdb_cc_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -45,6 +46,7 @@ mod compdb_cc_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .env("COMPDB_GENERATE", "1")
             .assert()
             .success();
@@ -61,6 +63,7 @@ mod compdb_cc_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -71,11 +74,25 @@ mod compdb_cc_tests {
     }
 
     #[test]
-    fn generate_with_missing_log_fails() {
+    fn generate_fails_when_compdb_log_not_set() {
         let temp_dir = TempDir::new().unwrap();
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env_remove("COMPDB_LOG")
+            .arg("--generate")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("COMPDB_LOG"));
+    }
+
+    #[test]
+    fn generate_with_missing_log_file_fails() {
+        let temp_dir = TempDir::new().unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "nonexistent.txt")
             .arg("--generate")
             .assert()
             .failure()
@@ -93,6 +110,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success()
@@ -113,6 +131,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -133,6 +152,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -151,6 +171,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -175,6 +196,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success()
@@ -197,6 +219,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -215,6 +238,7 @@ invalid json line
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -240,6 +264,7 @@ mod compdb_cxx_tests {
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -260,6 +285,7 @@ mod compdb_cxx_tests {
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .env("COMPDB_GENERATE", "true")
             .assert()
             .success();
@@ -268,15 +294,16 @@ mod compdb_cxx_tests {
     }
 
     #[test]
-    fn generate_with_missing_log_fails() {
+    fn generate_fails_when_compdb_log_not_set() {
         let temp_dir = TempDir::new().unwrap();
 
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
+            .env_remove("COMPDB_LOG")
             .arg("--generate")
             .assert()
             .failure()
-            .stderr(predicate::str::contains("Error"));
+            .stderr(predicate::str::contains("COMPDB_LOG"));
     }
 }
 
@@ -295,6 +322,7 @@ mod consistency_tests {
         // Generate with compdb-cc
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -308,6 +336,7 @@ mod consistency_tests {
         // Generate with compdb-cxx
         cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -319,24 +348,26 @@ mod consistency_tests {
     }
 
     #[test]
-    fn both_binaries_fail_same_way_for_missing_log() {
+    fn both_binaries_fail_same_way_for_missing_compdb_log() {
         let temp_dir = TempDir::new().unwrap();
 
         let cc_result = cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env_remove("COMPDB_LOG")
             .arg("--generate")
             .assert()
             .failure();
 
         let cxx_result = cargo_bin_cmd!("compdb-cxx")
             .current_dir(temp_dir.path())
+            .env_remove("COMPDB_LOG")
             .arg("--generate")
             .assert()
             .failure();
 
         // Both should fail with similar error
-        cc_result.stderr(predicate::str::contains("Error"));
-        cxx_result.stderr(predicate::str::contains("Error"));
+        cc_result.stderr(predicate::str::contains("COMPDB_LOG"));
+        cxx_result.stderr(predicate::str::contains("COMPDB_LOG"));
     }
 }
 
@@ -354,6 +385,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -373,6 +405,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -394,6 +427,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -413,6 +447,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -435,6 +470,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -453,6 +489,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -471,6 +508,7 @@ mod edge_case_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -484,21 +522,21 @@ mod edge_case_tests {
     fn generate_env_var_empty_string_does_not_trigger_generate() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create a log file just in case
+        // Create a log file
         fs::write(temp_dir.path().join("cc_hook.txt"), "").unwrap();
 
-        // With empty COMPDB_GENERATE, should try to run compiler (and fail)
+        // With empty COMPDB_GENERATE, should try to run compiler (not generate mode)
         // This tests that empty string doesn't trigger generate mode
-        let result = cargo_bin_cmd!("compdb-cc")
+        // We verify by checking that compile_commands.json is NOT created
+        let _ = cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .env("COMPDB_GENERATE", "")
             .arg("--version") // Pass to actual compiler
             .assert();
 
-        // Either it runs the compiler (which might not exist) or it doesn't generate
-        // The key is it shouldn't create compile_commands.json from generate mode
-        // Note: This may fail because clang isn't installed, but that's expected
-        let _ = result; // We just want to ensure it doesn't panic
+        // compile_commands.json should NOT be created because we're not in generate mode
+        assert!(!temp_dir.path().join("compile_commands.json").exists());
     }
 }
 
@@ -516,6 +554,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -534,6 +573,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -557,6 +597,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -576,6 +617,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -596,6 +638,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -616,6 +659,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -638,6 +682,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -659,6 +704,7 @@ mod output_format_tests {
 
         cargo_bin_cmd!("compdb-cc")
             .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cc_hook.txt")
             .arg("--generate")
             .assert()
             .success();
@@ -668,5 +714,111 @@ mod output_format_tests {
         let file = db[0]["file"].as_str().unwrap();
 
         assert!(file.starts_with('/'), "File path should be absolute");
+    }
+}
+
+// ==================== COMPDB_LOG env var tests ====================
+
+mod compdb_log_tests {
+    use super::*;
+
+    #[test]
+    fn generate_uses_custom_log_path() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create log file with custom name
+        let log_content = r#"{"wd":"/project","compiler":"clang","args":["-c","main.c"]}"#;
+        fs::write(temp_dir.path().join("custom_log.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "custom_log.txt")
+            .arg("--generate")
+            .assert()
+            .success();
+
+        // Verify compile_commands.json was created
+        let output_path = temp_dir.path().join("compile_commands.json");
+        assert!(output_path.exists());
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+        assert_eq!(db.len(), 1);
+        assert_eq!(db[0]["file"], "/project/main.c");
+    }
+
+    #[test]
+    fn generate_uses_absolute_log_path() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create log file
+        let log_path = temp_dir.path().join("subdir");
+        fs::create_dir(&log_path).unwrap();
+        let log_file = log_path.join("build_log.txt");
+
+        let log_content = r#"{"wd":"/project","compiler":"gcc","args":["-c","util.c"]}"#;
+        fs::write(&log_file, log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", log_file.to_str().unwrap())
+            .arg("--generate")
+            .assert()
+            .success();
+
+        let content = fs::read_to_string(temp_dir.path().join("compile_commands.json")).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+        assert_eq!(db.len(), 1);
+        assert_eq!(db[0]["file"], "/project/util.c");
+    }
+
+    #[test]
+    fn generate_fails_with_missing_custom_log() {
+        let temp_dir = TempDir::new().unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "nonexistent_log.txt")
+            .arg("--generate")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("Error"));
+    }
+
+    #[test]
+    fn compdb_cxx_uses_custom_log_path() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let log_content = r#"{"wd":"/project","compiler":"clang++","args":["-c","app.cpp"]}"#;
+        fs::write(temp_dir.path().join("cxx_log.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cxx")
+            .current_dir(temp_dir.path())
+            .env("COMPDB_LOG", "cxx_log.txt")
+            .arg("--generate")
+            .assert()
+            .success();
+
+        let content = fs::read_to_string(temp_dir.path().join("compile_commands.json")).unwrap();
+        let db: Vec<Value> = serde_json::from_str(&content).unwrap();
+        assert_eq!(db.len(), 1);
+        assert_eq!(db[0]["file"], "/project/app.cpp");
+    }
+
+    #[test]
+    fn fails_when_compdb_log_not_set() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create a log file, but don't set COMPDB_LOG
+        let log_content = r#"{"wd":"/project","args":["-c","main.c"]}"#;
+        fs::write(temp_dir.path().join("cc_hook.txt"), log_content).unwrap();
+
+        cargo_bin_cmd!("compdb-cc")
+            .current_dir(temp_dir.path())
+            .env_remove("COMPDB_LOG")
+            .arg("--generate")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("COMPDB_LOG"));
     }
 }

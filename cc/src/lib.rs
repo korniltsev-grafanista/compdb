@@ -3,8 +3,6 @@ pub mod generate;
 
 use std::env;
 
-const LOG_FILE: &str = "cc_hook.txt";
-
 pub fn run_cc() {
     let compiler = env::var("COMPDB_CC").unwrap_or_else(|_| "clang".to_string());
     run_with_compiler(&compiler);
@@ -27,6 +25,12 @@ pub fn get_cxx_compiler() -> String {
     env::var("COMPDB_CXX").unwrap_or_else(|_| "clang++".to_string())
 }
 
+/// Determine the log file path.
+/// Requires COMPDB_LOG environment variable to be set.
+pub fn get_log_file() -> Result<String, env::VarError> {
+    env::var("COMPDB_LOG")
+}
+
 /// Check if generate mode is requested via --generate flag in args.
 pub fn has_generate_flag(args: &[String]) -> bool {
     args.iter().any(|a| a == "--generate")
@@ -46,14 +50,21 @@ pub fn should_generate(args: &[String]) -> bool {
 
 fn run_with_compiler(compiler: &str) {
     let args: Vec<String> = env::args().collect();
+    let log_file = match get_log_file() {
+        Ok(path) => path,
+        Err(_) => {
+            eprintln!("Error: COMPDB_LOG environment variable is required");
+            std::process::exit(1);
+        }
+    };
 
     if should_generate(&args) {
-        if let Err(e) = generate::run(LOG_FILE) {
+        if let Err(e) = generate::run(&log_file) {
             eprintln!("Error: {}", e);
             std::process::exit(1);
         }
     } else {
-        wrapper::run(LOG_FILE, compiler);
+        wrapper::run(&log_file, compiler);
     }
 }
 
@@ -127,6 +138,49 @@ mod tests {
             let result = get_cxx_compiler();
             env::remove_var("COMPDB_CXX");
             assert_eq!(result, "/usr/local/bin/g++-12");
+        }
+    }
+
+    // ==================== get_log_file tests ====================
+
+    mod get_log_file_tests {
+        use super::*;
+        use std::sync::Mutex;
+
+        static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+        #[test]
+        fn returns_error_when_env_not_set() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::remove_var("COMPDB_LOG");
+            assert!(get_log_file().is_err());
+        }
+
+        #[test]
+        fn returns_custom_path_from_env() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::set_var("COMPDB_LOG", "custom_log.txt");
+            let result = get_log_file();
+            env::remove_var("COMPDB_LOG");
+            assert_eq!(result.unwrap(), "custom_log.txt");
+        }
+
+        #[test]
+        fn returns_absolute_path_from_env() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::set_var("COMPDB_LOG", "/tmp/build/compile_log.txt");
+            let result = get_log_file();
+            env::remove_var("COMPDB_LOG");
+            assert_eq!(result.unwrap(), "/tmp/build/compile_log.txt");
+        }
+
+        #[test]
+        fn returns_relative_path_from_env() {
+            let _guard = ENV_MUTEX.lock().unwrap();
+            env::set_var("COMPDB_LOG", "../logs/cc_hook.txt");
+            let result = get_log_file();
+            env::remove_var("COMPDB_LOG");
+            assert_eq!(result.unwrap(), "../logs/cc_hook.txt");
         }
     }
 
