@@ -103,9 +103,12 @@ dependencies = [
 name = "cc"
 version = "0.1.0"
 dependencies = [
+ "assert_cmd",
  "fs2",
+ "predicates",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]

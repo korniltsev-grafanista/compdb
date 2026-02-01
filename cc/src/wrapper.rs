@@ -50,7 +50,7 @@ pub fn run(log_file: &str, compiler: &str) {
         .expect("Failed to release lock");
 
     // Execute the compiler with the provided arguments
-    let mut cmd = Command::new(&compiler);
+    let mut cmd = Command::new(compiler);
     cmd.args(&args);
 
     // Replace current process with the compiler
