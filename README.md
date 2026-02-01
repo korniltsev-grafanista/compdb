@@ -1,25 +1,27 @@
-# compdbfilter
+# compdb
 
-Filter `compile_commands.json` by regex patterns.
+Tools for working with `compile_commands.json`.
 
 ## Installation
 
 ```bash
-cargo install --git https://github.com/korniltsev-grafanista/compdb.git compdbfilter
+CARGO_NET_GIT_FETCH_WITH_CLI=true cargo install --git https://github.com/korniltsev-grafanista/compdb.git filter
+CARGO_NET_GIT_FETCH_WITH_CLI=true cargo install --git https://github.com/korniltsev-grafanista/compdb.git cc
 ```
 
-Or from a local clone:
+This installs three binaries:
+- `compdb-filter` - Filter compile_commands.json by regex patterns
+- `compdb-cc` - C compiler wrapper for generating compile_commands.json
+- `compdb-cxx` - C++ compiler wrapper for generating compile_commands.json
+
+## compdb-filter
+
+Filter `compile_commands.json` by regex patterns.
+
+### Usage
 
 ```bash
-git clone https://github.com/korniltsev-grafanista/compdb.git
-cd compdb
-cargo install --path compdbfilter
-```
-
-## Usage
-
-```bash
-compdbfilter [OPTIONS] [PATH]
+compdb-filter [OPTIONS] [PATH]
 ```
 
 ### Arguments
@@ -31,24 +33,37 @@ compdbfilter [OPTIONS] [PATH]
 - `-e, --exclude <REGEX>` - Exclude files matching this regex (can be repeated)
 - `-i, --include <REGEX>` - Include files matching this regex even if excluded (can be repeated)
 
-### Examples
+## compdb-cc / compdb-cxx
 
-Exclude all test files:
+Compiler wrappers that log compilation commands for generating `compile_commands.json`.
+
+### How It Works
+
+1. `compdb-cc` and `compdb-cxx` act as drop-in replacements for your C/C++ compiler
+2. They log each compilation command to a file
+3. After the build completes, run with `--generate` to create `compile_commands.json`
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `COMPDB_LOG` | Yes | Absolute path to the log file (e.g., `/tmp/compdb.log`) |
+| `COMPDB_CC` | No | C compiler to use (default: `clang`) |
+| `COMPDB_CXX` | No | C++ compiler to use (default: `clang++`) |
+| `COMPDB_GENERATE` | No | Set to any non-empty value to generate `compile_commands.json` |
+
+### Usage
 
 ```bash
-compdbfilter -e '^tests/'
+# Set up environment
+export COMPDB_LOG=/tmp/compdb.log
+export COMPDB_CC=gcc
+export COMPDB_CXX=g++
+
+# Build your project using the wrappers as compilers
+./configure CC=compdb-cc CXX=compdb-cxx
+make
+
+# Generate compile_commands.json
+compdb-cc --generate
 ```
-
-Exclude tests and vendor, but keep integration tests:
-
-```bash
-compdbfilter -e '^tests/' -e '^vendor/' -i 'integration'
-```
-
-Filter a specific file:
-
-```bash
-compdbfilter /path/to/compile_commands.json -e 'drivers/'
-```
-
-The tool automatically creates a backup (`.bak`, `.bak.1`, etc.) before modifying the file.
