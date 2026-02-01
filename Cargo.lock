@@ -100,7 +100,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cc_hook"
+name = "cc"
 version = "0.1.0"
 dependencies = [
  "fs2",

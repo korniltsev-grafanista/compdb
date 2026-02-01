@@ -1,3 +1,0 @@
-{"wd": "/home/korniltsev/mygithub/dbudy/cc_hook_compdb", "args": ["qwe.c", "-DHUI", "-o", "out"]}
-{"args":[],"wd":"/home/korniltsev/dbudy/cc_hook_compdb"}
-{"args":[],"wd":"/home/korniltsev/a/dbudy/cc_hook_compdb"}
